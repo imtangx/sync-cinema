@@ -2,10 +2,7 @@ import React, { useEffect, useState, useRef } from "react";
 import { useParams } from "react-router-dom";
 import videoSrc from "../../assets/video2.mp4";
 import OnlineUsers from "../../components/OnlineUsers";
-import userService from "../../services/users";
 import "./index.css";
-import { use } from "react";
-import users from "../../services/users";
 
 class Message {
   constructor(type, data) {

@@ -1,6 +1,8 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import userService from "../services/users";
+import { Button, Input } from "antd";
+import "../styles/EnterRoomCard.css";
 
 const EnterRoomCard = () => {
   const [roomId, setRoomId] = useState("");
@@ -8,6 +10,7 @@ const EnterRoomCard = () => {
   const navigate = useNavigate();
 
   const handleSubmit = (event) => {
+    console.log("handleSubmit");
     event.preventDefault();
     if (roomId === "") {
       alert("请输入房间 ID");
@@ -18,36 +21,41 @@ const EnterRoomCard = () => {
       return;
     }
 
-    userService.checkUser({ username, roomId }).then((res) => {
-      console.log("用户创建成功");
-      localStorage.setItem("payload", JSON.stringify({ username, roomId }));
-      navigate(`/room/${roomId}`);
-    }).catch((error) => {
-      console.error("用户创建失败", error);
-      alert(`房间${roomId}已经存在用户${username}，请换个名字试试`);
-    });
+    userService
+      .checkUser({ username, roomId })
+      .then((res) => {
+        console.log("用户创建成功");
+        localStorage.setItem("payload", JSON.stringify({ username, roomId }));
+        navigate(`/room/${roomId}`);
+      })
+      .catch((error) => {
+        console.error("用户创建失败", error);
+        alert(`房间${roomId}已经存在用户${username}，请换个名字试试`);
+      });
   };
 
   return (
-    <>
+    <div className="EnterRoomCard">
       <form onSubmit={handleSubmit}>
-        <input
+        <Input
           type="text"
           value={roomId}
-          onChange={() => setRoomId(event.target.value)}
+          onChange={(e) => setRoomId(e.target.value)}
           placeholder="房间 ID"
         />
         <br />
-        <input
+        <Input
           type="text"
           value={username}
-          onChange={() => setUsername(event.target.value)}
+          onChange={(e) => setUsername(e.target.value)}
           placeholder="用户名"
         />
         <br />
-        <button type="submit">加入房间</button>
+        <Button type="primary" htmlType="submit">
+          加入房间
+        </Button>
       </form>
-    </>
+    </div>
   );
 };
 

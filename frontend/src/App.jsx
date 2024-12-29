@@ -6,14 +6,14 @@ import RoomPage from "./pages/RoomPage";
 
 function App() {
   return (
-    <>
+    <div className="App">
       <Router>
         <Routes>
           <Route path="/" element={<EnterRoomCard />} />
           <Route path="/room/:id" element={<RoomPage />} />
         </Routes>
       </Router>
-    </>
+    </div>
   );
 }
 
