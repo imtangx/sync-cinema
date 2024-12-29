@@ -1,7 +1,8 @@
 import React, { useEffect, useState, useRef } from "react";
 import { useParams } from "react-router-dom";
-import videoSrc from "../../assets/video2.mp4";
+import videoSrc from "../../assets/video1.mp4";
 import OnlineUsers from "../../components/OnlineUsers";
+import { Flex, List, Avatar, Row, Col } from "antd";
 import "./index.css";
 
 class Message {
@@ -25,37 +26,39 @@ const RoomPage = () => {
 
     if (video) {
       // 当开始拖动进度条时
-      video.addEventListener('seeking', () => {
-        setIsSeeking(true);  // 标识正在拖动
+      video.addEventListener("seeking", () => {
+        setIsSeeking(true); // 标识正在拖动
         if (video.paused) {
-          setIsPlaying(false);  // 如果视频是暂停的，避免在拖动过程中恢复播放
+          setIsPlaying(false); // 如果视频是暂停的，避免在拖动过程中恢复播放
         }
       });
 
       // 当拖动完成时
-      video.addEventListener('seeked', () => {
-        setIsSeeking(false);  // 标识拖动已完成
+      video.addEventListener("seeked", () => {
+        setIsSeeking(false); // 标识拖动已完成
         if (isPlaying) {
-          video.play().catch((err) => console.error('Error playing video:', err));  // 如果之前是播放状态，恢复播放
+          video
+            .play()
+            .catch((err) => console.error("Error playing video:", err)); // 如果之前是播放状态，恢复播放
         }
       });
 
       // 监听 play 事件
-      video.addEventListener('play', () => {
-        setIsPlaying(true);  // 设置播放状态
+      video.addEventListener("play", () => {
+        setIsPlaying(true); // 设置播放状态
       });
 
       // 监听 pause 事件
-      video.addEventListener('pause', () => {
-        setIsPlaying(false);  // 设置暂停状态
+      video.addEventListener("pause", () => {
+        setIsPlaying(false); // 设置暂停状态
       });
 
       return () => {
         // 清理事件监听器
-        video.removeEventListener('seeking', () => {});
-        video.removeEventListener('seeked', () => {});
-        video.removeEventListener('play', () => {});
-        video.removeEventListener('pause', () => {});
+        video.removeEventListener("seeking", () => {});
+        video.removeEventListener("seeked", () => {});
+        video.removeEventListener("play", () => {});
+        video.removeEventListener("pause", () => {});
       };
     }
   }, [videoRef.current]);
@@ -149,23 +152,42 @@ const RoomPage = () => {
   };
 
   return (
-    <>
-      <h1>Room {id}</h1>
+    <Col style={{ width: "70%", border: "1px solid #ccc", padding: "10px" }}>
+      <h1>房间 {id}</h1>
       <p>{broadmessage}</p>
-      <div className="video-container">
-        <video
-          ref={videoRef}
-          height="400"
-          controls
-          onPlay={handlePlay}
-          onPause={handlePause}
-        >
-          <source src={videoSrc} type="video/mp4" />
-          您的浏览器不支持视频标签
-        </video>
-        <OnlineUsers users={curUsers} />
-      </div>
-    </>
+      <Row gutter={16}>
+        <Col span={19}>
+          <video
+            ref={videoRef}
+            width={"100%"}
+            controls
+            onPlay={handlePlay}
+            onPause={handlePause}
+          >
+            <source src={videoSrc} type="video/mp4" />
+            您的浏览器不支持视频标签
+          </video>
+        </Col>
+        <Col span={5}>
+          <List
+            itemLayout="horizontal"
+            dataSource={curUsers}
+            renderItem={(user, index) => (
+              <List.Item>
+                <List.Item.Meta
+                  avatar={
+                    <Avatar
+                      src={`https://api.dicebear.com/7.x/miniavs/svg?seed=${index}`}
+                    />
+                  }
+                  title={user}
+                />
+              </List.Item>
+            )}
+          />
+        </Col>
+      </Row>
+    </Col>
   );
 };
 
