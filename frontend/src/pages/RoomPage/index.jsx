@@ -1,7 +1,9 @@
 import React, { useEffect, useState, useRef } from "react";
 import { useParams } from "react-router-dom";
+import RoomHeader from "../../components/RoomHeader";
 import videoSrc from "../../assets/video1.mp4";
-import OnlineUsers from "../../components/OnlineUsers";
+import OnlineUsersList from "../../components/OnlineUsersList";
+import VideoPlayer from "../../components/VideoPlayer";
 import { Flex, List, Avatar, Row, Col } from "antd";
 import "./index.css";
 
@@ -14,10 +16,8 @@ class Message {
 
 const RoomPage = () => {
   const [socket, setSocket] = useState(null);
-  const id = useParams().id;
   const [curUsers, setCurUsers] = useState([]);
-  const [lastBroadmessage, setLastBroadmessage] = useState("");
-  const [broadMessage, setBroadMessage] = useState("");
+  const [broadMessages, setBroadMessages] = useState([]);
   const videoRef = useRef(null);
   const [isSeeking, setIsSeeking] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -92,19 +92,17 @@ const RoomPage = () => {
           break;
         case "userJoined":
           console.log(`用户${data.username}加入了房间`);
-          setBroadMessage((prevMessage) => {
-            const newMessage = `用户${data.username}加入了房间`;
-            setLastBroadmessage(prevMessage);
-            return newMessage;
-          });
+          setBroadMessages((prevMessages) => [
+            ...prevMessages,
+            `用户${data.username}加入了房间`,
+          ]);
           break;
         case "userLefted":
           console.log(`用户${data.username}离开了房间`);
-          setBroadMessage((prevMessage) => {
-            const newMessage = `用户${data.username}离开了房间`;
-            setLastBroadmessage(prevMessage);
-            return newMessage;
-          });
+          setBroadMessages((prevMessages) => [
+            ...prevMessages,
+            `用户${data.username}离开了房间`,
+          ]);
           setCurUsers(data.onlineUsers);
           break;
         case "removeUser":
@@ -162,39 +160,20 @@ const RoomPage = () => {
 
   return (
     <Col style={{ width: "70%", border: "1px solid #ccc", padding: "10px" }}>
-      <h1>房间 {id}</h1>
-      <p style={{ opacity: 0.5 }}>{lastBroadmessage}</p>
-      <p>{broadMessage}</p>
-      <Row gutter={16}>
+      <Row span={4}>
+        <RoomHeader id={roomId} broadMessages={broadMessages} />
+      </Row>
+      <Row span={16} gutter={16}>
         <Col span={19}>
-          <video
-            ref={videoRef}
-            width={"100%"}
-            controls
+          <VideoPlayer
+            videoRef={videoRef}
+            videoSrc={videoSrc}
             onPlay={handlePlay}
             onPause={handlePause}
-          >
-            <source src={videoSrc} type="video/mp4" />
-            您的浏览器不支持视频标签
-          </video>
+          />
         </Col>
         <Col span={5}>
-          <List
-            itemLayout="horizontal"
-            dataSource={curUsers}
-            renderItem={(user, index) => (
-              <List.Item>
-                <List.Item.Meta
-                  avatar={
-                    <Avatar
-                      src={`https://api.dicebear.com/7.x/miniavs/svg?seed=${index}`}
-                    />
-                  }
-                  title={user}
-                />
-              </List.Item>
-            )}
-          />
+          <OnlineUsersList users={curUsers} />
         </Col>
       </Row>
     </Col>
