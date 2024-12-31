@@ -74,6 +74,9 @@ wss.on("connection", (ws) => {
       case "videoStatusChanged":
         handleVideoStatusChanged(data);
         break;
+      case "chatMessage":
+        handleChatMessages(data);
+        break;
     }
   });
 
@@ -100,7 +103,8 @@ wss.on("connection", (ws) => {
     //发送在线用户列表
     const onlineUsers = [];
     for (const [key, ws] of clients) {
-      if (key.split(",")[1] === ws.client.roomId) {
+      if (key.split(",")[1] === roomId) {
+        console.log(key.split(",")[1], ws.client.roomId);
         onlineUsers.push(key.split(",")[0]);
       }
     }
@@ -122,6 +126,12 @@ wss.on("connection", (ws) => {
         broadcast(videoPauseMessage, roomId);
     }
   };
+
+  const handleChatMessages = (payload) => {
+    const {username, roomId, message} = payload;
+    const chatMessage = new Message('chatMessage', {username, message});
+    broadcast(chatMessage, roomId);
+  }
 
   ws.on("close", () => {
     if (ws.client) {
