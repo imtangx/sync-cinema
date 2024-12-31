@@ -16,7 +16,8 @@ const RoomPage = () => {
   const [socket, setSocket] = useState(null);
   const id = useParams().id;
   const [curUsers, setCurUsers] = useState([]);
-  const [broadmessage, setBroadmessage] = useState("");
+  const [lastBroadmessage, setLastBroadmessage] = useState("");
+  const [broadMessage, setBroadMessage] = useState("");
   const videoRef = useRef(null);
   const [isSeeking, setIsSeeking] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -91,11 +92,19 @@ const RoomPage = () => {
           break;
         case "userJoined":
           console.log(`用户${data.username}加入了房间`);
-          setBroadmessage(`用户${data.username}加入了房间`);
+          setBroadMessage((prevMessage) => {
+            const newMessage = `用户${data.username}加入了房间`;
+            setLastBroadmessage(prevMessage);
+            return newMessage;
+          });
           break;
         case "userLefted":
           console.log(`用户${data.username}离开了房间`);
-          setBroadmessage(`用户${data.username}离开了房间`);
+          setBroadMessage((prevMessage) => {
+            const newMessage = `用户${data.username}离开了房间`;
+            setLastBroadmessage(prevMessage);
+            return newMessage;
+          });
           setCurUsers(data.onlineUsers);
           break;
         case "removeUser":
@@ -154,7 +163,8 @@ const RoomPage = () => {
   return (
     <Col style={{ width: "70%", border: "1px solid #ccc", padding: "10px" }}>
       <h1>房间 {id}</h1>
-      <p>{broadmessage}</p>
+      <p style={{ opacity: 0.5 }}>{lastBroadmessage}</p>
+      <p>{broadMessage}</p>
       <Row gutter={16}>
         <Col span={19}>
           <video
