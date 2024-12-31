@@ -4,8 +4,11 @@ import RoomHeader from "../../components/RoomHeader";
 import videoSrc from "../../assets/video1.mp4";
 import OnlineUsersList from "../../components/OnlineUsersList";
 import VideoPlayer from "../../components/VideoPlayer";
-import { Flex, List, Avatar, Row, Col } from "antd";
+import ChatBox from "../../components/ChatBox";
+import { Flex, List, Avatar, Row, Col, Layout, Menu } from "antd";
 import "./index.css";
+
+const { Header, Content, Footer, Sider } = Layout;
 
 class Message {
   constructor(type, data) {
@@ -18,6 +21,7 @@ const RoomPage = () => {
   const [socket, setSocket] = useState(null);
   const [curUsers, setCurUsers] = useState([]);
   const [broadMessages, setBroadMessages] = useState([]);
+  const [chatMessages, setChatMessages] = useState([]);
   const videoRef = useRef(null);
   const [isSeeking, setIsSeeking] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -90,6 +94,10 @@ const RoomPage = () => {
           );
           console.log(`您的用户id为${data.uid}`);
           break;
+        case "chatMessage":
+          console.log(`用户${data.username}说:${data.message}`);
+          setChatMessages((prevMessages) => [...prevMessages, data]);
+          break;
         case "userJoined":
           console.log(`用户${data.username}加入了房间`);
           setBroadMessages((prevMessages) => [
@@ -158,25 +166,44 @@ const RoomPage = () => {
     socket.send(JSON.stringify(message));
   };
 
+  const sendChatMessage = (message) => {
+    const chatMessage = new Message("chatMessage", {
+      username,
+      roomId,
+      message,
+    });
+    socket.send(JSON.stringify(chatMessage));
+  };
+
   return (
-    <Col style={{ width: "70%", border: "1px solid #ccc", padding: "10px" }}>
-      <Row span={4}>
-        <RoomHeader id={roomId} broadMessages={broadMessages} />
-      </Row>
-      <Row span={16} gutter={16}>
-        <Col span={19}>
+    <Layout>
+      <Header style={{ background: "#8ECAE6", textAlign: "center" }}>Room {roomId}</Header>
+      <Layout>
+        <Content>
           <VideoPlayer
             videoRef={videoRef}
             videoSrc={videoSrc}
             onPlay={handlePlay}
             onPause={handlePause}
           />
-        </Col>
-        <Col span={5}>
-          <OnlineUsersList users={curUsers} />
-        </Col>
-      </Row>
-    </Col>
+        </Content>
+        <Sider
+          width="25%"
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            background: "#F8F9FA", // 浅灰色背景
+          }}
+        >
+          <div style={{ maxHeight: "200px", overflowY: "auto" }}>
+            <OnlineUsersList users={curUsers} />
+          </div>
+          <div style={{ flex: 1, height: "calc(100vh - 200px - 64px)" }}>
+            <ChatBox messages={chatMessages} handleSend={sendChatMessage} />
+          </div>
+        </Sider>
+      </Layout>
+    </Layout>
   );
 };
 
