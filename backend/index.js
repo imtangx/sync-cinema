@@ -77,6 +77,9 @@ wss.on("connection", (ws) => {
       case "chatMessage":
         handleChatMessages(data);
         break;
+      case "videoUrlChanged":
+        handleVideoUrlChanged(data);
+        break;
     }
   });
 
@@ -131,6 +134,12 @@ wss.on("connection", (ws) => {
     const {username, roomId, message} = payload;
     const chatMessage = new Message('chatMessage', {username, message});
     broadcast(chatMessage, roomId);
+  }
+
+  const handleVideoUrlChanged = (payload) => {
+    const {username, roomId, url} = payload;
+    const videoUrlChangedMessage = new Message("videoUrlChanged", {username, url});
+    broadcast(videoUrlChangedMessage, roomId);
   }
 
   ws.on("close", () => {

@@ -5,7 +5,7 @@ import testVideoSrc from "../../assets/video1.mp4";
 import OnlineUsersList from "../../components/OnlineUsersList";
 import VideoPlayer from "../../components/VideoPlayer";
 import ChatBox from "../../components/ChatBox";
-import { Flex, List, Avatar, Row, Col, Layout, Menu, Button } from "antd";
+import { Flex, List, Avatar, Row, Col, Layout, Menu, Button, message } from "antd";
 import "./index.css";
 import VideoUrlChanger from "../../components/VideoUrlChanger";
 
@@ -118,6 +118,10 @@ const RoomPage = () => {
         case "showOnlineUsers":
           setCurUsers(data.onlineUsers);
           break;
+        case "videoUrlChanged":
+          message.success("视频已更新");
+          setVideoSrc(data.url);
+          break;
         case "videoPlay":
           if (isSeeking === false) {
             video.play();
@@ -163,6 +167,16 @@ const RoomPage = () => {
     socket.send(JSON.stringify(message));
   };
 
+  const handldVideoUrlChanged = (url) => {
+    setVideoSrc(url);
+    const message = new Message("videoUrlChanged", {
+      username,
+      roomId,
+      url,
+    });
+    socket.send(JSON.stringify(message));
+  };
+
   const sendChatMessage = (message) => {
     const chatMessage = new Message("chatMessage", {
       username,
@@ -201,7 +215,7 @@ const RoomPage = () => {
         </Sider>
       </Layout>
       <Footer>
-        <VideoUrlChanger setVideoUrl={setVideoSrc}/>
+        <VideoUrlChanger handldVideoUrlChanged={handldVideoUrlChanged}/>
       </Footer>
     </Layout>
   );
