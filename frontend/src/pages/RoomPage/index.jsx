@@ -1,12 +1,13 @@
 import React, { useEffect, useState, useRef } from "react";
 import { useParams } from "react-router-dom";
 import RoomHeader from "../../components/RoomHeader";
-import videoSrc from "../../assets/video1.mp4";
+import testVideoSrc from "../../assets/video1.mp4";
 import OnlineUsersList from "../../components/OnlineUsersList";
 import VideoPlayer from "../../components/VideoPlayer";
 import ChatBox from "../../components/ChatBox";
-import { Flex, List, Avatar, Row, Col, Layout, Menu } from "antd";
+import { Flex, List, Avatar, Row, Col, Layout, Menu, Button } from "antd";
 import "./index.css";
+import VideoUrlChanger from "../../components/VideoUrlChanger";
 
 const { Header, Content, Footer, Sider } = Layout;
 
@@ -25,6 +26,7 @@ const RoomPage = () => {
   const videoRef = useRef(null);
   const [isSeeking, setIsSeeking] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [videoSrc, setVideoSrc] = useState(testVideoSrc);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -113,11 +115,6 @@ const RoomPage = () => {
           ]);
           setCurUsers(data.onlineUsers);
           break;
-        case "removeUser":
-          setCurUsers(
-            curUsers.filter((user) => user.username !== data.username)
-          );
-          break;
         case "showOnlineUsers":
           setCurUsers(data.onlineUsers);
           break;
@@ -198,11 +195,14 @@ const RoomPage = () => {
           <div style={{ maxHeight: "200px", overflowY: "auto" }}>
             <OnlineUsersList users={curUsers} />
           </div>
-          <div style={{ flex: 1, height: "calc(100vh - 200px - 64px)" }}>
+          <div style={{ flex: 1, height: "calc(100vh - 200px)" }}>
             <ChatBox messages={chatMessages} handleSend={sendChatMessage} />
           </div>
         </Sider>
       </Layout>
+      <Footer>
+        <VideoUrlChanger setVideoUrl={setVideoSrc}/>
+      </Footer>
     </Layout>
   );
 };
