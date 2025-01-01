@@ -124,9 +124,11 @@ wss.on("connection", (ws) => {
       case "videoPlay":
         const videoPlayMessage = new Message(type, { time });
         broadcast(videoPlayMessage, roomId);
+        break;
       case "videoPause":
         const videoPauseMessage = new Message(type, { time });
         broadcast(videoPauseMessage, roomId);
+        break;
     }
   };
 

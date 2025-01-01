@@ -5,7 +5,7 @@ import testVideoSrc from "../../assets/video1.mp4";
 import OnlineUsersList from "../../components/OnlineUsersList";
 import VideoPlayer from "../../components/VideoPlayer";
 import ChatBox from "../../components/ChatBox";
-import { Flex, List, Avatar, Row, Col, Layout, Menu, Button, message } from "antd";
+import { Layout, message } from "antd";
 import "./index.css";
 import VideoUrlChanger from "../../components/VideoUrlChanger";
 
@@ -24,51 +24,7 @@ const RoomPage = () => {
   const [broadMessages, setBroadMessages] = useState([]);
   const [chatMessages, setChatMessages] = useState([]);
   const videoRef = useRef(null);
-  const [isSeeking, setIsSeeking] = useState(false);
-  const [isPlaying, setIsPlaying] = useState(false);
   const [videoSrc, setVideoSrc] = useState(testVideoSrc);
-
-  useEffect(() => {
-    const video = videoRef.current;
-
-    if (video) {
-      // 当开始拖动进度条时
-      video.addEventListener("seeking", () => {
-        setIsSeeking(true); // 标识正在拖动
-        if (video.paused) {
-          setIsPlaying(false); // 如果视频是暂停的，避免在拖动过程中恢复播放
-        }
-      });
-
-      // 当拖动完成时
-      video.addEventListener("seeked", () => {
-        setIsSeeking(false); // 标识拖动已完成
-        if (isPlaying) {
-          video
-            .play()
-            .catch((err) => console.error("Error playing video:", err)); // 如果之前是播放状态，恢复播放
-        }
-      });
-
-      // 监听 play 事件
-      video.addEventListener("play", () => {
-        setIsPlaying(true); // 设置播放状态
-      });
-
-      // 监听 pause 事件
-      video.addEventListener("pause", () => {
-        setIsPlaying(false); // 设置暂停状态
-      });
-
-      return () => {
-        // 清理事件监听器
-        video.removeEventListener("seeking", () => {});
-        video.removeEventListener("seeked", () => {});
-        video.removeEventListener("play", () => {});
-        video.removeEventListener("pause", () => {});
-      };
-    }
-  }, [videoRef.current]);
 
   const { username, roomId } = JSON.parse(localStorage.getItem("payload"));
   useEffect(() => {
@@ -123,17 +79,11 @@ const RoomPage = () => {
           setVideoSrc(data.url);
           break;
         case "videoPlay":
-          if (isSeeking === false) {
-            video.play();
-            video.currentTime = data.time;
-          }
+          video.play();
+          video.currentTime = data.time;
           break;
         case "videoPause":
-          if (isSeeking === false) {
-            video.pause();
-            //暂停不要更新时间
-            // video.currentTime = data.time;
-          }
+          video.pause();
           break;
       }
     });
@@ -157,14 +107,17 @@ const RoomPage = () => {
 
   const sendVideoStatus = (type) => {
     console.log(type);
-    const time = videoRef.current.currentTime;
-    const message = new Message("videoStatusChanged", {
-      type,
-      username,
-      roomId,
-      time,
-    });
-    socket.send(JSON.stringify(message));
+    if (socket) {
+      const time = videoRef.current.currentTime;
+      const message = new Message("videoStatusChanged", {
+        type,
+        username,
+        roomId,
+        time,
+      });
+      console.log(message);
+      socket.send(JSON.stringify(message));
+    }
   };
 
   const handldVideoUrlChanged = (url) => {
@@ -188,7 +141,9 @@ const RoomPage = () => {
 
   return (
     <Layout>
-      <Header style={{ background: "#8ECAE6", textAlign: "center" }}>Room {roomId}</Header>
+      <Header style={{ background: "#8ECAE6", textAlign: "center" }}>
+        Room {roomId}
+      </Header>
       <Layout>
         <Content>
           <VideoPlayer
@@ -215,7 +170,7 @@ const RoomPage = () => {
         </Sider>
       </Layout>
       <Footer>
-        <VideoUrlChanger handldVideoUrlChanged={handldVideoUrlChanged}/>
+        <VideoUrlChanger handldVideoUrlChanged={handldVideoUrlChanged} />
       </Footer>
     </Layout>
   );
