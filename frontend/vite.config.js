@@ -2,7 +2,7 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
 // https://vite.dev/config/
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   plugins: [react()],
   base: '/sync-cinema/',
   server: {
@@ -12,5 +12,9 @@ export default defineConfig({
         ws: true
       }
     }
+  },
+  define: {
+    // 确保环境变量在客户端可用
+    'process.env.NODE_ENV': JSON.stringify(mode)
   }
-})
+}))

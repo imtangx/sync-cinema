@@ -1,24 +1,22 @@
 import axios from "axios";
 
-const baseUrl = "http://localhost:3001/users";
+const apiUrl = import.meta.env.VITE_API_URL;
 
 const getAll = () => {
-  return axios.get(baseUrl).then((response) => response.data);
+  return axios.get(`${apiUrl}/users`).then((response) => response.data);
 };
 
 const create = (user) => {
-  return axios.post(baseUrl, user).then((response) => response.data);
+  return axios.post(`${apiUrl}/users`, user).then((response) => response.data);
 };
 
 const delUser = (id) => {
-  return axios
-    .delete(`${baseUrl}/${id}`)
-    .then((response) => response.data);
+  return axios.delete(`${apiUrl}/users/${id}`).then((response) => response.data);
 };
 
 const checkUser = (user) => {
-  return axios.post(`${baseUrl}/check`, user).then((response) => response.data);
-}
+  return axios.post(`${apiUrl}/users/check`, user).then((response) => response.data);
+};
 
 export default {
   getAll,

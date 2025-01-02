@@ -31,7 +31,7 @@ const RoomPage = () => {
     const video = videoRef.current;
     video.muted = true;
 
-    const socket = new WebSocket(`ws://localhost:3001`);
+    const socket = new WebSocket(import.meta.env.VITE_WS_URL);
     setSocket(socket);
     socket.addEventListener("open", (event) => {
       console.log("opened");
