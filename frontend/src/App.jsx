@@ -7,7 +7,7 @@ import RoomPage from "./pages/RoomPage";
 function App() {
   return (
     <div className="App">
-      <Router>
+      <Router basename="/sync-cinema">
         <Routes>
           <Route path="/" element={<EnterRoomCard />} />
           <Route path="/room/:id" element={<RoomPage />} />
