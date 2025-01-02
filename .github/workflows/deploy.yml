@@ -4,10 +4,6 @@ on:
   push:
     branches:
       - master
-    paths-ignore:      # 添加忽略路径，避免不必要的部署
-      - '**.md'
-      - '.gitignore'
-      - '.env.example'
 
 jobs:
   deploy:
@@ -21,28 +17,40 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: '18'
-          cache: 'npm'    # 添加缓存加速构建
+          cache: 'npm'
 
       # 构建前端
       - name: Install frontend dependencies
         working-directory: ./frontend
-        run: |
-          npm ci          # 使用 ci 而不是 install，更快更稳定
+        run: npm ci
           
       - name: Build frontend
         working-directory: ./frontend
-        env:              # 添加环境变量
+        env:
           VITE_API_URL: https://imtangx.top/api
           VITE_WS_URL: wss://imtangx.top/ws
         run: npm run build
+
+      # 测试 SSH 连接
+      - name: Test SSH Connection
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USERNAME }}
+          password: ${{ secrets.SERVER_PASSWORD }}
+          script: |
+            echo "Testing connection"
+            pwd
+            whoami
 
       # 清理并部署前端文件
       - name: Deploy frontend
         uses: appleboy/ssh-action@master
         with:
-          host: 47.122.72.129
-          username: root
+          host: "47.122.72.129"
+          username: "root"
           password: ${{ secrets.SERVER_PASSWORD }}
+          debug: true   # 添加调试信息
           script: |
             mkdir -p /var/www/sync-cinema/dist
             rm -rf /var/www/sync-cinema/dist/*
@@ -50,20 +58,19 @@ jobs:
       - name: Copy frontend files
         uses: appleboy/scp-action@master
         with:
-          host: 47.122.72.129
-          username: root
+          host: "47.122.72.129"
+          username: "root"
           password: ${{ secrets.SERVER_PASSWORD }}
           source: "frontend/dist/*"
           target: "/var/www/sync-cinema/dist"
           strip_components: 2
-          timeout: 120s    # 添加超时设置
 
       # 部署后端
       - name: Deploy backend
         uses: appleboy/ssh-action@master
         with:
-          host: 47.122.72.129
-          username: root
+          host: "47.122.72.129"
+          username: "root"
           password: ${{ secrets.SERVER_PASSWORD }}
           script: |
             mkdir -p /var/www/sync-cinema/backend
@@ -73,35 +80,21 @@ jobs:
       - name: Copy backend files
         uses: appleboy/scp-action@master
         with:
-          host: 47.122.72.129
-          username: root
+          host: "47.122.72.129"
+          username: "root"
           password: ${{ secrets.SERVER_PASSWORD }}
           source: "backend/*"
           target: "/var/www/sync-cinema/backend"
           strip_components: 1
-          timeout: 120s    # 添加超时设置
 
       # 重启后端服务
       - name: Start backend service
         uses: appleboy/ssh-action@master
         with:
-          host: 47.122.72.129
-          username: root
+          host: "47.122.72.129"
+          username: "root"
           password: ${{ secrets.SERVER_PASSWORD }}
           script: |
             cd /var/www/sync-cinema/backend
-            npm ci          # 使用 ci 而不是 install
-            pm2 restart sync-cinema-backend || pm2 start index.js --name sync-cinema-backend --time # 添加时间戳记录
-
-      # 添加部署通知
-      - name: Deployment Status
-        if: always()
-        uses: appleboy/ssh-action@master
-        with:
-          host: 47.122.72.129
-          username: root
-          password: ${{ secrets.SERVER_PASSWORD }}
-          script: |
-            echo "Deployment completed at $(date)"
-            pm2 status sync-cinema-backend
-            nginx -t
+            npm ci
+            pm2 restart sync-cinema-backend || pm2 start index.js --name sync-cinema-backend
