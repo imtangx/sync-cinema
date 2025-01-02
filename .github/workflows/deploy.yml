@@ -8,22 +8,42 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    
+    environment: production
+
     steps:
+      # 添加调试步骤
+      - name: Debug
+        run: |
+          echo "Checking if secrets exist..."
+          if [ -n "${{ secrets.SERVER_HOST }}" ]; then
+            echo "SERVER_HOST exists"
+          else
+            echo "SERVER_HOST is missing"
+          fi
+          if [ -n "${{ secrets.SERVER_USERNAME }}" ]; then
+            echo "SERVER_USERNAME exists"
+          else
+            echo "SERVER_USERNAME is missing"
+          fi
+          if [ -n "${{ secrets.SERVER_PASSWORD }}" ]; then
+            echo "SERVER_PASSWORD exists"
+          else
+            echo "SERVER_PASSWORD is missing"
+          fi
       - name: Checkout repository
         uses: actions/checkout@v3
 
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '18'
-          cache: 'npm'
+          node-version: "18"
+          cache: "npm"
 
       # 构建前端
       - name: Install frontend dependencies
         working-directory: ./frontend
-        run: npm ci
-          
+        run: npm install
+
       - name: Build frontend
         working-directory: ./frontend
         env:
@@ -38,6 +58,7 @@ jobs:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USERNAME }}
           password: ${{ secrets.SERVER_PASSWORD }}
+          debug: true
           script: |
             echo "Testing connection"
             pwd
@@ -47,10 +68,9 @@ jobs:
       - name: Deploy frontend
         uses: appleboy/ssh-action@master
         with:
-          host: "47.122.72.129"
-          username: "root"
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USERNAME }}
           password: ${{ secrets.SERVER_PASSWORD }}
-          debug: true   # 添加调试信息
           script: |
             mkdir -p /var/www/sync-cinema/dist
             rm -rf /var/www/sync-cinema/dist/*
@@ -58,8 +78,8 @@ jobs:
       - name: Copy frontend files
         uses: appleboy/scp-action@master
         with:
-          host: "47.122.72.129"
-          username: "root"
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USERNAME }}
           password: ${{ secrets.SERVER_PASSWORD }}
           source: "frontend/dist/*"
           target: "/var/www/sync-cinema/dist"
@@ -69,8 +89,8 @@ jobs:
       - name: Deploy backend
         uses: appleboy/ssh-action@master
         with:
-          host: "47.122.72.129"
-          username: "root"
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USERNAME }}
           password: ${{ secrets.SERVER_PASSWORD }}
           script: |
             mkdir -p /var/www/sync-cinema/backend
@@ -80,8 +100,8 @@ jobs:
       - name: Copy backend files
         uses: appleboy/scp-action@master
         with:
-          host: "47.122.72.129"
-          username: "root"
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USERNAME }}
           password: ${{ secrets.SERVER_PASSWORD }}
           source: "backend/*"
           target: "/var/www/sync-cinema/backend"
@@ -91,8 +111,8 @@ jobs:
       - name: Start backend service
         uses: appleboy/ssh-action@master
         with:
-          host: "47.122.72.129"
-          username: "root"
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USERNAME }}
           password: ${{ secrets.SERVER_PASSWORD }}
           script: |
             cd /var/www/sync-cinema/backend
