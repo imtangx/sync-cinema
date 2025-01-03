@@ -1,28 +1,14 @@
-const express = require("express");
-const cors = require("cors");
-const uuid = require("uuid");
-const { HttpStatusCode } = require("axios");
+import express from "express";
+import cors from "cors";
+import { HttpStatusCode } from "axios";
+import { WebSocketServer, WebSocket } from "ws";
+import { createServer } from "http";
+import User from '../shared/models/User.js'
+import Message from "../shared/models/Message.js";
+
 const app = express();
-
-// 创建 HTTP 服务器 将 WebSocket 服务器附加到 HTTP 服务器
-const WebSocket = require("ws");
-const server = require("http").createServer(app);
-const wss = new WebSocket.Server({ server });
-
-class User {
-  constructor(username, roomId) {
-    this.uid = uuid.v4();
-    this.username = username;
-    this.roomId = roomId;
-  }
-}
-
-class Message {
-  constructor(type, data) {
-    this.type = type;
-    this.data = data;
-  }
-}
+const server = createServer(app);
+const wss = new WebSocketServer({ server });
 
 const clients = new Map();
 const timers = new Map();
@@ -90,12 +76,8 @@ wss.on("connection", (ws) => {
     clearTimeout(timer);
 
     ws.client = new User(username, roomId);
-    const uid = ws.client.uid;
 
     if (clients.has(key) === false) {
-      const sendIdMessage = new Message("sendId", { uid });
-      ws.send(JSON.stringify(sendIdMessage));
-
       const userJoinedMessage = new Message("userJoined", { username });
       broadcast(userJoinedMessage, roomId);
     }

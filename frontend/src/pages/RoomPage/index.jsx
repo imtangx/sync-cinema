@@ -8,15 +8,9 @@ import ChatBox from "../../components/ChatBox";
 import { Layout, message } from "antd";
 import "./index.css";
 import VideoUrlChanger from "../../components/VideoUrlChanger";
+import Message from "../../../../shared/models/Message";
 
 const { Header, Content, Footer, Sider } = Layout;
-
-class Message {
-  constructor(type, data) {
-    this.type = type;
-    this.data = data;
-  }
-}
 
 const RoomPage = () => {
   const [socket, setSocket] = useState(null);
@@ -45,13 +39,6 @@ const RoomPage = () => {
     socket.addEventListener("message", (event) => {
       const { type, data } = JSON.parse(event.data);
       switch (type) {
-        case "sendId":
-          localStorage.setItem(
-            "payload",
-            JSON.stringify({ uid: data.uid, username, roomId })
-          );
-          console.log(`您的用户id为${data.uid}`);
-          break;
         case "chatMessage":
           console.log(`用户${data.username}说:${data.message}`);
           setChatMessages((prevMessages) => [...prevMessages, data]);
