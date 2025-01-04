@@ -1,6 +1,5 @@
 import React, { useEffect, useState, useRef } from "react";
 import { useParams } from "react-router-dom";
-import RoomHeader from "../../components/RoomHeader";
 import testVideoSrc from "../../assets/video1.mp4";
 import OnlineUsersList from "../../components/OnlineUsersList";
 import VideoPlayer from "../../components/VideoPlayer";
@@ -15,8 +14,7 @@ const { Header, Content, Footer, Sider } = Layout;
 const RoomPage = () => {
   const [socket, setSocket] = useState(null);
   const [curUsers, setCurUsers] = useState([]);
-  const [broadMessages, setBroadMessages] = useState([]);
-  const [chatMessages, setChatMessages] = useState([]);
+  const [messagesList, setMessagesList] = useState([]);
   const videoRef = useRef(null);
   const [videoSrc, setVideoSrc] = useState(testVideoSrc);
 
@@ -37,19 +35,17 @@ const RoomPage = () => {
     });
 
     socket.addEventListener("message", (event) => {
-      const { type, data } = JSON.parse(event.data);
+      const message = JSON.parse(event.data);
+      const { type, data } = message;
       switch (type) {
         case "chatMessage":
-          console.log(`用户${data.username}说:${data.message}`);
-          setChatMessages((prevMessages) => [...prevMessages, data]);
+          setMessagesList((prevMessages) => [...prevMessages, message]);
           break;
         case "userJoined":
-          console.log(`用户${data.username}加入了房间`);
-          setBroadMessages((prevMessages) => [...prevMessages, `用户${data.username}加入了房间`]);
+          setMessagesList((prevMessages) => [...prevMessages, message]);
           break;
         case "userLefted":
-          console.log(`用户${data.username}离开了房间`);
-          setBroadMessages((prevMessages) => [...prevMessages, `用户${data.username}离开了房间`]);
+          setMessagesList((prevMessages) => [...prevMessages, message]);
           setCurUsers(data.onlineUsers);
           break;
         case "showOnlineUsers":
@@ -133,7 +129,7 @@ const RoomPage = () => {
               <OnlineUsersList users={curUsers} />
             </div>
             <div style={{ flex: 1, overflow: "auto" }}>
-              <ChatBox messages={chatMessages} handleSend={sendChatMessage} />
+              <ChatBox messages={messagesList} handleSend={sendChatMessage} />
             </div>
           </div>
         </Sider>

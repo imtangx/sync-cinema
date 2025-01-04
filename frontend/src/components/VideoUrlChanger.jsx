@@ -6,7 +6,7 @@ const VideoUrlChanger = ({ handldVideoUrlChanged }) => {
   return (
     <Flex>
       <Input placeholder="请输入视频 URL" onChange={(e) => setInputUrl(e.target.value)} />
-      <Button type="primary" onClick={() => handldVideoUrlChanged(inputUrl)}/>
+      <Button type="primary" onClick={() => handldVideoUrlChanged(inputUrl)} style={{marginLeft: "8px"}}>提交</Button>
     </Flex>
   );
 };
