@@ -31,7 +31,7 @@ const RoomPage = () => {
       console.log("opened");
       const userEnteredMessage = new Message("userEntered", {
         username,
-        roomId,
+        roomId
       });
       socket.send(JSON.stringify(userEnteredMessage));
     });
@@ -45,17 +45,11 @@ const RoomPage = () => {
           break;
         case "userJoined":
           console.log(`用户${data.username}加入了房间`);
-          setBroadMessages((prevMessages) => [
-            ...prevMessages,
-            `用户${data.username}加入了房间`,
-          ]);
+          setBroadMessages((prevMessages) => [...prevMessages, `用户${data.username}加入了房间`]);
           break;
         case "userLefted":
           console.log(`用户${data.username}离开了房间`);
-          setBroadMessages((prevMessages) => [
-            ...prevMessages,
-            `用户${data.username}离开了房间`,
-          ]);
+          setBroadMessages((prevMessages) => [...prevMessages, `用户${data.username}离开了房间`]);
           setCurUsers(data.onlineUsers);
           break;
         case "showOnlineUsers":
@@ -100,7 +94,7 @@ const RoomPage = () => {
         type,
         username,
         roomId,
-        time,
+        time
       });
       console.log(message);
       socket.send(JSON.stringify(message));
@@ -112,7 +106,7 @@ const RoomPage = () => {
     const message = new Message("videoUrlChanged", {
       username,
       roomId,
-      url,
+      url
     });
     socket.send(JSON.stringify(message));
   };
@@ -121,43 +115,31 @@ const RoomPage = () => {
     const chatMessage = new Message("chatMessage", {
       username,
       roomId,
-      message,
+      message
     });
     socket.send(JSON.stringify(chatMessage));
   };
 
   return (
-    <Layout>
-      <Header style={{ background: "#8ECAE6", textAlign: "center" }}>
-        Room {roomId}
-      </Header>
+    <Layout style={{ height: "100vh" }}>
+      <Header style={{ background: "skyblue", textAlign: "center", height: "64px" }}>Room {roomId}</Header>
       <Layout>
         <Content>
-          <VideoPlayer
-            videoRef={videoRef}
-            videoSrc={videoSrc}
-            onPlay={handlePlay}
-            onPause={handlePause}
-          />
+          <VideoPlayer videoRef={videoRef} videoSrc={videoSrc} onPlay={handlePlay} onPause={handlePause} />
         </Content>
-        <Sider
-          width="25%"
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            background: "#F8F9FA", // 浅灰色背景
-          }}
-        >
-          <div style={{ maxHeight: "200px", overflowY: "auto" }}>
-            <OnlineUsersList users={curUsers} />
-          </div>
-          <div style={{ flex: 1, height: "calc(100vh - 200px)" }}>
-            <ChatBox messages={chatMessages} handleSend={sendChatMessage} />
+        <Sider width="22.8%">
+          <div style={{ display: "flex", flexDirection: "column", height: "100%", background: "rgb(234, 239, 241)" }}>
+            <div style={{ maxHeight: "120px", overflow: "auto" }}>
+              <OnlineUsersList users={curUsers} />
+            </div>
+            <div style={{ flex: 1, overflow: "auto" }}>
+              <ChatBox messages={chatMessages} handleSend={sendChatMessage} />
+            </div>
           </div>
         </Sider>
       </Layout>
-      <Footer>
-        <VideoUrlChanger handldVideoUrlChanged={handldVideoUrlChanged} />
+      <Footer style={{ background: "skyblue", height: "64px" }}>
+        <VideoUrlChanger onChange={handldVideoUrlChanged} />
       </Footer>
     </Layout>
   );
