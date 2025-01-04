@@ -7,7 +7,21 @@ import ChatBox from "../../components/ChatBox";
 import { Layout, message } from "antd";
 import "./index.css";
 import VideoUrlChanger from "../../components/VideoUrlChanger";
-import Message from "../../../../shared/models/Message";
+// import Message from "../../../../shared/models/Message";
+
+class Message {
+  constructor(type, data) {
+    this.type = type;
+    this.data = data;
+  }
+}
+
+class User {
+  constructor(username, roomId) {
+    this.username = username;
+    this.roomId = roomId;
+  }
+}
 
 const { Header, Content, Footer, Sider } = Layout;
 

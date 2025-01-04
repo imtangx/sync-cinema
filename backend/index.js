@@ -3,8 +3,22 @@ import cors from "cors";
 import { HttpStatusCode } from "axios";
 import { WebSocketServer, WebSocket } from "ws";
 import { createServer } from "http";
-import User from '../shared/models/User.js'
-import Message from "../shared/models/Message.js";
+// import User from '../shared/models/User.js'
+// import Message from "../shared/models/Message.js";
+
+class Message {
+  constructor(type, data) {
+    this.type = type;
+    this.data = data;
+  }
+}
+
+class User {
+  constructor(username, roomId) {
+    this.username = username;
+    this.roomId = roomId;
+  }
+}
 
 const app = express();
 const server = createServer(app);
