@@ -149,7 +149,7 @@ const RoomPage = () => {
         </Sider>
       </Layout>
       <Footer style={{ background: "skyblue", height: "64px" }}>
-        <VideoUrlChanger onChange={handldVideoUrlChanged} />
+        <VideoUrlChanger handldVideoUrlChanged={handldVideoUrlChanged} />
       </Footer>
     </Layout>
   );
