@@ -49,23 +49,24 @@ const RoomPage = () => {
     });
 
     socket.addEventListener("message", (event) => {
-      const message = JSON.parse(event.data);
-      const { type, data } = message;
+      const broadMessage = JSON.parse(event.data);
+      const { type, data } = broadMessage;
       switch (type) {
         case "chatMessage":
-          setMessagesList((prevMessages) => [...prevMessages, message]);
+          setMessagesList((prevMessages) => [...prevMessages, broadMessage]);
           break;
         case "userJoined":
-          setMessagesList((prevMessages) => [...prevMessages, message]);
+          setMessagesList((prevMessages) => [...prevMessages, broadMessage]);
           break;
         case "userLefted":
-          setMessagesList((prevMessages) => [...prevMessages, message]);
+          setMessagesList((prevMessages) => [...prevMessages, broadMessage]);
           setCurUsers(data.onlineUsers);
           break;
         case "showOnlineUsers":
           setCurUsers(data.onlineUsers);
           break;
         case "videoUrlChanged":
+          console.log(11111);
           message.success("视频已更新");
           setVideoSrc(data.url);
           break;
@@ -111,7 +112,7 @@ const RoomPage = () => {
     }
   };
 
-  const handldVideoUrlChanged = (url) => {
+  const handleVideoUrlChanged = (url) => {
     setVideoSrc(url);
     const message = new Message("videoUrlChanged", {
       username,
@@ -149,7 +150,7 @@ const RoomPage = () => {
         </Sider>
       </Layout>
       <Footer style={{ background: "skyblue", height: "64px" }}>
-        <VideoUrlChanger handldVideoUrlChanged={handldVideoUrlChanged} />
+        <VideoUrlChanger handleVideoUrlChanged={handleVideoUrlChanged} />
       </Footer>
     </Layout>
   );
