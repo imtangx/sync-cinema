@@ -1,12 +1,10 @@
 import React, { useEffect, useState, useRef } from "react";
 import { useParams } from "react-router-dom";
-import testVideoSrc from "../../assets/video1.mp4";
-import OnlineUsersList from "../../components/OnlineUsersList";
-import VideoPlayer from "../../components/VideoPlayer";
-import ChatBox from "../../components/ChatBox";
+import OnlineUsersList from "../components/OnlineUsersList";
+import VideoPlayer from "../components/VideoPlayer";
+import ChatBox from "../components/ChatBox";
 import { Layout, message } from "antd";
-import "./index.css";
-import VideoUrlChanger from "../../components/VideoUrlChanger";
+import VideoUrlChanger from "../components/VideoUrlChanger";
 // import Message from "../../../../shared/models/Message";
 
 class Message {
@@ -30,7 +28,8 @@ const RoomPage = () => {
   const [curUsers, setCurUsers] = useState([]);
   const [messagesList, setMessagesList] = useState([]);
   const videoRef = useRef(null);
-  const [videoSrc, setVideoSrc] = useState(testVideoSrc);
+  const [videoSrc, setVideoSrc] = useState("https://vjs.zencdn.net/v/oceans.mp4");
+  const lastTimeRef = useRef(0);
 
   const { username, roomId } = JSON.parse(localStorage.getItem("payload"));
   useEffect(() => {
@@ -50,8 +49,13 @@ const RoomPage = () => {
 
     socket.addEventListener("message", (event) => {
       const broadMessage = JSON.parse(event.data);
+      const now = Date.now();
       const { type, data } = broadMessage;
       switch (type) {
+        case "getVideoState":
+          setVideoSrc(data.url);
+          video.currentTime = data.time;
+          break;
         case "chatMessage":
           setMessagesList((prevMessages) => [...prevMessages, broadMessage]);
           break;
@@ -66,16 +70,22 @@ const RoomPage = () => {
           setCurUsers(data.onlineUsers);
           break;
         case "videoUrlChanged":
-          console.log(11111);
-          message.success("视频已更新");
+          message.success(`视频源已被${data.username}更新`);
           setVideoSrc(data.url);
           break;
         case "videoPlay":
-          video.play();
-          video.currentTime = data.time;
+          if (video.paused && now - lastTimeRef.current >= 200) {
+            lastTimeRef.current = now;
+            video.play();
+            video.currentTime = data.time;
+            message.success(`视频进度被${data.username}更新`);
+          }
           break;
         case "videoPause":
-          video.pause();
+          if (!video.paused && now - lastTimeRef.current >= 200) {
+            // lastTimeRef.current = now;
+            video.pause();
+          }
           break;
       }
     });
@@ -94,7 +104,9 @@ const RoomPage = () => {
   };
 
   const handlePause = () => {
-    sendVideoStatus("videoPause");
+    if (document.visibilityState !== "hidden") {
+      sendVideoStatus("videoPause");
+    }
   };
 
   const sendVideoStatus = (type) => {

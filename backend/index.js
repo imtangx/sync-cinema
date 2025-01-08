@@ -23,9 +23,12 @@ class User {
 const app = express();
 const server = createServer(app);
 const wss = new WebSocketServer({ server });
+const roomVideoPlayTimes = new Map();
+const roomVideoUrls = new Map();
 
 const clients = new Map();
 const timers = new Map();
+const initialVideoUrl = "https://vjs.zencdn.net/v/oceans.mp4";
 
 const getKey = (payload) => {
   return String(payload.username + "," + payload.roomId);
@@ -53,7 +56,7 @@ const setTimer = (payload) => {
 
     const userLeftedMessage = new Message("userLefted", {
       username,
-      onlineUsers,
+      onlineUsers
     });
     broadcast(userLeftedMessage, roomId);
   }, 2000);
@@ -99,46 +102,59 @@ wss.on("connection", (ws) => {
     //有重复键也要设定新的ws窗口
     clients.set(key, ws);
 
+    const getVideoStateMessage = new Message("getVideoState", {
+      url: roomVideoUrls.has(roomId) ? roomVideoUrls.get(roomId) : (roomVideoUrls.set(roomId, initialVideoUrl), initialVideoUrl),
+      time: roomVideoPlayTimes.has(roomId) ? roomVideoPlayTimes.get(roomId) : (roomVideoPlayTimes.set(roomId, 0), 0)
+    });
+
+    ws.send(JSON.stringify(getVideoStateMessage));
+
     //发送在线用户列表
     const onlineUsers = [];
     for (const [key, ws] of clients) {
       if (key.split(",")[1] === roomId) {
-        console.log(key.split(",")[1], ws.client.roomId);
         onlineUsers.push(key.split(",")[0]);
       }
     }
 
     const showOnlineUsersMessage = new Message("showOnlineUsers", {
-      onlineUsers,
+      onlineUsers
     });
     broadcast(showOnlineUsersMessage, roomId);
   };
 
   const handleVideoStatusChanged = (payload) => {
     const { type, username, roomId, time } = payload;
+    if (roomVideoPlayTimes.has(roomId)) {
+      roomVideoPlayTimes.set(roomId, time);
+    }
     switch (type) {
       case "videoPlay":
-        const videoPlayMessage = new Message(type, { time });
+        const videoPlayMessage = new Message(type, { username, time });
         broadcast(videoPlayMessage, roomId);
         break;
       case "videoPause":
-        const videoPauseMessage = new Message(type, { time });
+        const videoPauseMessage = new Message(type, { username, time });
         broadcast(videoPauseMessage, roomId);
         break;
     }
   };
 
   const handleChatMessages = (payload) => {
-    const {username, roomId, message} = payload;
-    const chatMessage = new Message('chatMessage', {username, message});
+    const { username, roomId, message } = payload;
+    const chatMessage = new Message("chatMessage", { username, message });
     broadcast(chatMessage, roomId);
-  }
+  };
 
   const handleVideoUrlChanged = (payload) => {
-    const {username, roomId, url} = payload;
-    const videoUrlChangedMessage = new Message("videoUrlChanged", {username, url});
+    const { username, roomId, url } = payload;
+    if (roomVideoUrls.has(roomId)) {
+      roomVideoUrls.set(roomId, url);
+      console.log(roomId, url);
+    }
+    const videoUrlChangedMessage = new Message("videoUrlChanged", { username, url });
     broadcast(videoUrlChangedMessage, roomId);
-  }
+  };
 
   ws.on("close", () => {
     if (ws.client) {
