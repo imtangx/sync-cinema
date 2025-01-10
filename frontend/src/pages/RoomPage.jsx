@@ -5,30 +5,16 @@ import VideoPlayer from "../components/VideoPlayer";
 import ChatBox from "../components/ChatBox";
 import { Layout, message } from "antd";
 import VideoUrlChanger from "../components/VideoUrlChanger";
-// import Message from "../../../../shared/models/Message";
-
-class Message {
-  constructor(type, data) {
-    this.type = type;
-    this.data = data;
-  }
-}
-
-class User {
-  constructor(username, roomId) {
-    this.username = username;
-    this.roomId = roomId;
-  }
-}
+import { MessageType } from "../../../shared/constants.js";
+import { useRoomStore } from "../stores/roomStore.js";
+import { Message } from "../../../shared/models/Message.js";
 
 const { Header, Content, Footer, Sider } = Layout;
 
 const RoomPage = () => {
+  const store = useRoomStore();
   const [socket, setSocket] = useState(null);
-  const [curUsers, setCurUsers] = useState([]);
-  const [messagesList, setMessagesList] = useState([]);
   const videoRef = useRef(null);
-  const [videoSrc, setVideoSrc] = useState("https://vjs.zencdn.net/v/oceans.mp4");
   const lastTimeRef = useRef(0);
 
   const { username, roomId } = JSON.parse(localStorage.getItem("payload"));
@@ -40,107 +26,158 @@ const RoomPage = () => {
     setSocket(socket);
     socket.addEventListener("open", (event) => {
       console.log("opened");
-      const userEnteredMessage = new Message("userEntered", {
+      const userJoinMessage = new Message(MessageType.USER_JOIN, {
         username,
         roomId
       });
-      socket.send(JSON.stringify(userEnteredMessage));
+      socket.send(JSON.stringify(userJoinMessage));
     });
 
     socket.addEventListener("message", (event) => {
-      const broadMessage = JSON.parse(event.data);
+      const payload = JSON.parse(event.data);
+      const { type, data } = payload;
       const now = Date.now();
-      const { type, data } = broadMessage;
       switch (type) {
-        case "getVideoState":
-          setVideoSrc(data.url);
-          video.currentTime = data.time;
+        case MessageType.USER_JOIN:
+          //更新用户列表
+          store.addUserToRoom(data.username);
+          store.addMessage(new Message(type, data));
           break;
-        case "chatMessage":
-          setMessagesList((prevMessages) => [...prevMessages, broadMessage]);
+        case MessageType.USER_LEFT:
+          //更新用户列表
+          store.removeUserFromRoom(data.username);
+          store.addMessage(new Message(type, data));
           break;
-        case "userJoined":
-          setMessagesList((prevMessages) => [...prevMessages, broadMessage]);
-          break;
-        case "userLefted":
-          setMessagesList((prevMessages) => [...prevMessages, broadMessage]);
-          setCurUsers(data.onlineUsers);
-          break;
-        case "showOnlineUsers":
-          setCurUsers(data.onlineUsers);
-          break;
-        case "videoUrlChanged":
-          message.success(`视频源已被${data.username}更新`);
-          setVideoSrc(data.url);
-          break;
-        case "videoPlay":
-          if (video.paused && now - lastTimeRef.current >= 200) {
-            lastTimeRef.current = now;
-            video.play();
-            video.currentTime = data.time;
-            message.success(`视频进度被${data.username}更新`);
-          }
-          break;
-        case "videoPause":
-          if (!video.paused && now - lastTimeRef.current >= 200) {
-            // lastTimeRef.current = now;
+        case MessageType.ROOM_STATE:
+          // 获取房间状态
+          // 计算实际播放进度
+          const currentTime = data.videoState.isPlaying ? data.videoState.currentTime + (Date.now() - data.videoState.lastUpdated) / 1000 : data.videoState.currentTime;
+          // 更新状态
+          store.setRoomState(data.onlineUsers, data.messages, {
+            ...data.videoState,
+            currentTime
+          });
+
+          // 同步视频状态
+          video.currentTime = currentTime;
+          if (data.videoState.isPlaying) {
+            video.play().catch((error) => {
+              console.error("播放失败:", error);
+            });
+          } else {
             video.pause();
           }
+          break;
+        case MessageType.VIDEO_PLAY:
+          //节流
+          console.log(data);
+          if (video.paused && now - lastTimeRef.current >= 200) {
+            store.setVideoState(data.videoState);
+            lastTimeRef.current = now;
+            video.currentTime = data.videoState.currentTime;
+            video.play().catch((error) => {
+              console.error("播放失败:", error);
+            });
+          }
+          message.success(`视频进度被${data.username}更改`);
+          break;
+        case MessageType.VIDEO_PAUSE:
+          if (!video.paused && now - lastTimeRef.current >= 200) {
+            store.setVideoState(data.videoState);
+            video.pause();
+          }
+          break;
+        case MessageType.VIDEO_URL_UPDATE:
+          //更新视频地址
+          store.setVideoState(data.videoState);
+          message.success(`视频源被${data.username}更新`);
+          break;
+        case MessageType.SYSTEM_MESSAGE:
+        case MessageType.CHAT_MESSAGE:
+          //新增信息
+          store.addMessage(payload);
           break;
       }
     });
 
     return () => {
-      /**
-       * TODO
-       * 清理监听器
-       * 关闭socket
-       */
+      /*
+      TODO
+      清理监听器
+      关闭socket
+      */
     };
   }, []);
 
   const handlePlay = () => {
-    sendVideoStatus("videoPlay");
-  };
-
-  const handlePause = () => {
-    if (document.visibilityState !== "hidden") {
-      sendVideoStatus("videoPause");
+    if (socket && socket.readyState === WebSocket.OPEN) {
+      const newVideoState = {
+        ...store.videoState,
+        isPlaying: true,
+        currentTime: videoRef.current.currentTime,
+        lastUpdated: Date.now() // 添加时间戳
+      };
+      store.setVideoState(newVideoState);
+      socket.send(
+        JSON.stringify(
+          new Message(MessageType.VIDEO_PLAY, {
+            username,
+            roomId,
+            videoState: newVideoState
+          })
+        )
+      );
     }
   };
 
-  const sendVideoStatus = (type) => {
-    console.log(type);
-    if (socket) {
-      const time = videoRef.current.currentTime;
-      const message = new Message("videoStatusChanged", {
-        type,
-        username,
-        roomId,
-        time
-      });
-      console.log(message);
-      socket.send(JSON.stringify(message));
+  const handlePause = () => {
+    if (socket && socket.readyState === WebSocket.OPEN) {
+      //窗口隐藏/切屏 不自动暂停
+      if (document.visibilityState !== "hidden") {
+        const newVideoState = {
+          ...store.videoState,
+          isPlaying: false,
+          currentTime: videoRef.current.currentTime,
+          lastUpdated: Date.now() // 添加时间戳
+        };
+        store.setVideoState(newVideoState);
+        socket.send(
+          JSON.stringify(
+            new Message(MessageType.VIDEO_PAUSE, {
+              username,
+              roomId,
+              videoState: newVideoState
+            })
+          )
+        );
+      }
     }
   };
 
   const handleVideoUrlChanged = (url) => {
-    setVideoSrc(url);
-    const message = new Message("videoUrlChanged", {
-      username,
-      roomId,
-      url
-    });
-    socket.send(JSON.stringify(message));
+    if (socket && socket.readyState === WebSocket.OPEN) {
+      const newVideoState = {
+        ...store.videoState,
+        url,
+        currentTime: 0, // URL改变时重置播放进度
+        isPlaying: true
+      };
+      store.setVideoState(newVideoState);
+      socket.send(
+        JSON.stringify(
+          new Message(MessageType.VIDEO_URL_UPDATE, {
+            username,
+            roomId,
+            videoState: newVideoState
+          })
+        )
+      );
+    }
   };
-
   const sendChatMessage = (message) => {
-    const chatMessage = new Message("chatMessage", {
-      username,
-      roomId,
-      message
-    });
-    socket.send(JSON.stringify(chatMessage));
+    if (socket && socket.readyState === WebSocket.OPEN) {
+      socket.send(JSON.stringify(new Message(MessageType.CHAT_MESSAGE, { username, roomId, message })));
+    }
   };
 
   return (
@@ -148,15 +185,15 @@ const RoomPage = () => {
       <Header style={{ background: "skyblue", textAlign: "center", height: "64px" }}>Room {roomId}</Header>
       <Layout>
         <Content>
-          <VideoPlayer videoRef={videoRef} videoSrc={videoSrc} onPlay={handlePlay} onPause={handlePause} />
+          <VideoPlayer videoRef={videoRef} videoSrc={store.videoState.url} onPlay={handlePlay} onPause={handlePause} />
         </Content>
         <Sider width="22.8%">
           <div style={{ display: "flex", flexDirection: "column", height: "100%", background: "rgb(234, 239, 241)" }}>
             <div style={{ maxHeight: "120px", overflow: "auto" }}>
-              <OnlineUsersList users={curUsers} />
+              <OnlineUsersList users={store.onlineUsers} />
             </div>
             <div style={{ flex: 1, overflow: "auto" }}>
-              <ChatBox messages={messagesList} handleSend={sendChatMessage} />
+              <ChatBox messages={store.messages} handleSend={sendChatMessage} />
             </div>
           </div>
         </Sider>

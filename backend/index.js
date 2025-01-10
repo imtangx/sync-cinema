@@ -3,32 +3,18 @@ import cors from "cors";
 import { HttpStatusCode } from "axios";
 import { WebSocketServer, WebSocket } from "ws";
 import { createServer } from "http";
-// import User from '../shared/models/User.js'
-// import Message from "../shared/models/Message.js";
+import { MessageType } from "../shared/constants.js";
+import { RoomState } from "../shared/models/RoomState.js";
+import { RoomManager } from "../shared/models/RoomManager.js";
+import { Message } from "../shared/models/Message.js";
 
-class Message {
-  constructor(type, data) {
-    this.type = type;
-    this.data = data;
-  }
-}
-
-class User {
-  constructor(username, roomId) {
-    this.username = username;
-    this.roomId = roomId;
-  }
-}
 
 const app = express();
 const server = createServer(app);
 const wss = new WebSocketServer({ server });
-const roomVideoPlayTimes = new Map();
-const roomVideoUrls = new Map();
 
-const clients = new Map();
+const roomManager = new RoomManager();
 const timers = new Map();
-const initialVideoUrl = "https://vjs.zencdn.net/v/oceans.mp4";
 
 const getKey = (payload) => {
   return String(payload.username + "," + payload.roomId);
@@ -42,23 +28,14 @@ const setTimer = (payload) => {
   const { username, roomId } = payload;
   const key = getKey(payload);
   const timer = getTimer(payload);
-  clearTimeout(timer);
+  if (timer) {
+    clearTimeout(timer);
+  }
   const newTimer = setTimeout(() => {
-    clients.delete(key);
+    //回调 删除用户
     timers.delete(key);
-    //更新删除后的在线用户列表
-    const onlineUsers = [];
-    for (const [key, ws] of clients) {
-      if (key.split(",")[1] === payload.roomId) {
-        onlineUsers.push(key.split(",")[0]);
-      }
-    }
-
-    const userLeftedMessage = new Message("userLefted", {
-      username,
-      onlineUsers
-    });
-    broadcast(userLeftedMessage, roomId);
+    roomManager.removeUserFromRoom(username, roomId);
+    roomManager.broadcast(roomId, new Message(MessageType.USER_LEFT, { username }));
   }, 2000);
   timers.set(key, newTimer);
 };
@@ -66,130 +43,110 @@ const setTimer = (payload) => {
 wss.on("connection", (ws) => {
   console.log("Client connected");
 
-  //发送客户端它的id
+
+  let curUsername = null;
+  let curRoomId = null;
+
   ws.on("message", (message) => {
     const payload = JSON.parse(message);
     const { type, data } = payload;
     switch (type) {
-      case "userEntered":
-        handleUserEntered(data);
+      case MessageType.USER_JOIN:
+        handleUserEntered(payload);
         break;
-      case "videoStatusChanged":
-        handleVideoStatusChanged(data);
+      case MessageType.VIDEO_PAUSE:
+      case MessageType.VIDEO_PLAY:
+      case MessageType.VIDEO_URL_UPDATE:
+        handleVideoStatusChanged(payload);
         break;
-      case "chatMessage":
-        handleChatMessages(data);
-        break;
-      case "videoUrlChanged":
-        handleVideoUrlChanged(data);
+      case MessageType.SYSTEM_MESSAGE:
+      case MessageType.CHAT_MESSAGE:
+        handleMessages(payload);
         break;
     }
   });
 
   const handleUserEntered = (payload) => {
-    const { username, roomId } = payload;
-    const key = getKey(payload);
-    const timer = getTimer(payload);
-    clearTimeout(timer);
+    const { type, data } = payload;
+    const { username, roomId } = data;
+    curUsername = username;
+    curRoomId = roomId;
 
-    ws.client = new User(username, roomId);
-
-    if (clients.has(key) === false) {
-      const userJoinedMessage = new Message("userJoined", { username });
-      broadcast(userJoinedMessage, roomId);
+    const key = getKey(data);
+    const timer = getTimer(data);
+    if (timer) {
+      clearTimeout(timer);
     }
 
-    //有重复键也要设定新的ws窗口
-    clients.set(key, ws);
-
-    const getVideoStateMessage = new Message("getVideoState", {
-      url: roomVideoUrls.has(roomId) ? roomVideoUrls.get(roomId) : (roomVideoUrls.set(roomId, initialVideoUrl), initialVideoUrl),
-      time: roomVideoPlayTimes.has(roomId) ? roomVideoPlayTimes.get(roomId) : (roomVideoPlayTimes.set(roomId, 0), 0)
-    });
-
-    ws.send(JSON.stringify(getVideoStateMessage));
-
-    //发送在线用户列表
-    const onlineUsers = [];
-    for (const [key, ws] of clients) {
-      if (key.split(",")[1] === roomId) {
-        onlineUsers.push(key.split(",")[0]);
-      }
+    // 查看用户是否真的退出
+    if (!roomManager.includeUser(username, roomId)) {
+      roomManager.addUserToRoom(username, roomId, ws);
+      roomManager.broadcast(roomId, new Message(MessageType.USER_JOIN, { username }));
+    } else {
+      // 对刷新后的窗口重新进行ws连接
+      roomManager.userConnections.set(username, ws);
     }
 
-    const showOnlineUsersMessage = new Message("showOnlineUsers", {
-      onlineUsers
-    });
-    broadcast(showOnlineUsersMessage, roomId);
+    const room = roomManager.getRoom(roomId);
+    // 更新视频状态的时间戳和实际进度
+    if (room.videoState.isPlaying) {
+      const elapsedTime = (Date.now() - room.videoState.lastUpdated) / 1000;
+      room.videoState.currentTime += elapsedTime;
+      room.videoState.lastUpdated = Date.now();
+    }
+
+    // 给用户发送这个房间的状态
+    ws.send(
+      JSON.stringify(
+        new Message(MessageType.ROOM_STATE, {
+          onlineUsers: room.onlineUsers,
+          messages: room.messages,
+          videoState: room.videoState
+        })
+      )
+    );
   };
 
   const handleVideoStatusChanged = (payload) => {
-    const { type, username, roomId, time } = payload;
-    if (roomVideoPlayTimes.has(roomId)) {
-      roomVideoPlayTimes.set(roomId, time);
-    }
-    switch (type) {
-      case "videoPlay":
-        const videoPlayMessage = new Message(type, { username, time });
-        broadcast(videoPlayMessage, roomId);
-        break;
-      case "videoPause":
-        const videoPauseMessage = new Message(type, { username, time });
-        broadcast(videoPauseMessage, roomId);
-        break;
-    }
+    const { type, data } = payload;
+    const { username, roomId, videoState } = data;
+    const room = roomManager.getRoom(roomId);
+    room.videoState = {
+      ...room.videoState,
+      ...videoState,
+      lastUpdated: Date.now()
+    };
+    console.log(videoState.url);
+    roomManager.broadcast(roomId, new Message(type, { username, roomId, videoState }));
   };
 
-  const handleChatMessages = (payload) => {
-    const { username, roomId, message } = payload;
-    const chatMessage = new Message("chatMessage", { username, message });
-    broadcast(chatMessage, roomId);
-  };
-
-  const handleVideoUrlChanged = (payload) => {
-    const { username, roomId, url } = payload;
-    if (roomVideoUrls.has(roomId)) {
-      roomVideoUrls.set(roomId, url);
-      console.log(roomId, url);
-    }
-    const videoUrlChangedMessage = new Message("videoUrlChanged", { username, url });
-    broadcast(videoUrlChangedMessage, roomId);
+  const handleMessages = (payload) => {
+    const { type, data } = payload;
+    const { roomId } = data;
+    const room = roomManager.getRoom(roomId);  // 使用传入的roomId
+    room.messages.push(payload);
+    roomManager.broadcast(roomId, payload);
   };
 
   ws.on("close", () => {
-    if (ws.client) {
-      setTimer(ws.client);
+    if (curUsername && curRoomId) {
+      setTimer({ username: curUsername, roomId: curRoomId });
     }
   });
 });
 
-const broadcast = (message, roomId) => {
-  for (const [key, ws] of clients) {
-    if (ws.readyState === WebSocket.OPEN && key.split(",")[1] === roomId) {
-      ws.send(JSON.stringify(message));
-    }
-  }
-};
-
 app.use(cors());
 app.use(express.json());
 
-app.get("/", (request, response) => {
-  response.send("<h1>User Data</h1>");
-});
-
 app.get("/users", (request, response) => {
-  // 将 Map 转换成一个数组
-  const clientsArray = Array.from(clients, ([key, value]) => key);
-  response.json(clientsArray);
+  response.send("<h1>Sync Cinema Server</h1>");
 });
 
 app.post("/users/check", (request, response) => {
-  const key = getKey(request.body);
-  if (clients.has(key)) {
-    response.status(HttpStatusCode.Conflict).send({});
+  const { username, roomId } = request.body;
+  if (roomManager.includeUser(username, roomId)) {
+    return response.status(HttpStatusCode.Conflict).send({});
   }
-
   return response.status(200).send();
 });
 

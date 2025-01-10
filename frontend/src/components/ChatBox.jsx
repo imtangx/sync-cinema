@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Input, Button, List, message } from "antd";
 import { SendOutlined } from "@ant-design/icons";
+import { MessageType } from "../../../shared/constants.js";
 
 // 聊天气泡组件
 const ChatBubble = ({ msg, isSelf }) => {
@@ -33,7 +34,7 @@ const ChatBubble = ({ msg, isSelf }) => {
 
 // 系统通知组件
 const SystemMessage = ({ message }) => {
-  const state = message.type === "userJoined" ? "加入" : "离开";
+  const state = message.type === MessageType.USER_JOIN ? "加入" : "离开";
   return (
     <div style={{ display: "flex", justifyContent: "center", padding: "8px 0" }}>
       <div
@@ -80,7 +81,7 @@ const ChatBox = ({ messages, handleSend }) => {
           dataSource={messages}
           renderItem={(msg) => {
             // 判断是否为系统消息
-            if (msg.type === "userJoined" || msg.type === "userLefted") {
+            if (msg.type === MessageType.USER_JOIN || msg.type === MessageType.USER_LEFT) {
               return <SystemMessage message={msg} />;
             }
             // 普通聊天消息
