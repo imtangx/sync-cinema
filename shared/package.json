@@ -1,5 +1,8 @@
 {
   "name": "shared",
   "version": "1.0.0",
-  "type": "module"
+  "type": "module",
+  "dependencies": {
+    "ws": "^8.18.0"
+  }
 }
