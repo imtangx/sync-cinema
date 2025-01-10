@@ -68,8 +68,8 @@ jobs:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USERNAME }}
           password: ${{ secrets.SERVER_PASSWORD }}
-          source: "shared/**"
-          target: "/var/www/sync-cinema"
+          source: "shared/*"
+          target: "/var/www/sync-cinema/shared"
           strip_components: 1
 
       # 测试 SSH 连接
