@@ -43,7 +43,6 @@ const setTimer = (payload) => {
 wss.on("connection", (ws) => {
   console.log("Client connected");
 
-
   let curUsername = null;
   let curRoomId = null;
 
@@ -51,6 +50,10 @@ wss.on("connection", (ws) => {
     const payload = JSON.parse(message);
     const { type, data } = payload;
     switch (type) {
+      case MessageType.HOME_JOIN:
+        roomManager.addHomeConnection(ws);
+        roomManager.broadcastToHome();
+        break;
       case MessageType.USER_JOIN:
         handleUserEntered(payload);
         break;
@@ -116,7 +119,6 @@ wss.on("connection", (ws) => {
       ...videoState,
       lastUpdated: Date.now()
     };
-    console.log(videoState.url);
     roomManager.broadcast(roomId, new Message(type, { username, roomId, videoState }));
   };
 
@@ -129,6 +131,9 @@ wss.on("connection", (ws) => {
   };
 
   ws.on("close", () => {
+    //Home离开
+    roomManager.removeHomeConnection(ws);
+    //不为null Room离开
     if (curUsername && curRoomId) {
       setTimer({ username: curUsername, roomId: curRoomId });
     }
