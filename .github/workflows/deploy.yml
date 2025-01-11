@@ -11,25 +11,6 @@ jobs:
     environment: production
 
     steps:
-      # 添加调试步骤
-      - name: Debug
-        run: |
-          echo "Checking if secrets exist..."
-          if [ -n "${{ secrets.SERVER_HOST }}" ]; then
-            echo "SERVER_HOST exists"
-          else
-            echo "SERVER_HOST is missing"
-          fi
-          if [ -n "${{ secrets.SERVER_USERNAME }}" ]; then
-            echo "SERVER_USERNAME exists"
-          else
-            echo "SERVER_USERNAME is missing"
-          fi
-          if [ -n "${{ secrets.SERVER_PASSWORD }}" ]; then
-            echo "SERVER_PASSWORD exists"
-          else
-            echo "SERVER_PASSWORD is missing"
-          fi
       - name: Checkout repository
         uses: actions/checkout@v3
 
@@ -40,16 +21,13 @@ jobs:
           cache: "npm"
 
       # 构建前端
-      - name: Install frontend dependencies
+      - name: Install and build frontend
         working-directory: ./frontend
-        run: npm install
-
-      - name: Build frontend
-        working-directory: ./frontend
-        env:
-          VITE_API_URL: https://imtangx.top/api
-          VITE_WS_URL: wss://imtangx.top/ws
-        run: npm run build
+        run: |
+          npm install
+          VITE_API_URL=https://imtangx.top/api 
+          VITE_WS_URL=wss://imtangx.top/ws 
+          npm run build
 
       # 部署 shared 目录
       - name: Deploy shared
@@ -68,24 +46,10 @@ jobs:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USERNAME }}
           password: ${{ secrets.SERVER_PASSWORD }}
-          source: "shared/*"
-          target: "/var/www/sync-cinema/shared"
-          strip_components: 1
+          source: "shared/**"
+          target: "/var/www/sync-cinema"
 
-      # 测试 SSH 连接
-      - name: Test SSH Connection
-        uses: appleboy/ssh-action@master
-        with:
-          host: ${{ secrets.SERVER_HOST }}
-          username: ${{ secrets.SERVER_USERNAME }}
-          password: ${{ secrets.SERVER_PASSWORD }}
-          debug: true
-          script: |
-            echo "Testing connection"
-            pwd
-            whoami
-
-      # 清理并部署前端文件
+      # 部署前端文件
       - name: Deploy frontend
         uses: appleboy/ssh-action@master
         with:
@@ -104,7 +68,6 @@ jobs:
           password: ${{ secrets.SERVER_PASSWORD }}
           source: "frontend/dist/*"
           target: "/var/www/sync-cinema/dist"
-          strip_components: 2
 
       # 部署后端
       - name: Deploy backend
@@ -115,7 +78,7 @@ jobs:
           password: ${{ secrets.SERVER_PASSWORD }}
           script: |
             mkdir -p /var/www/sync-cinema/backend
-            pm2 stop sync-cinema-backend || true
+            pm2 delete sync-cinema-backend || true
             rm -rf /var/www/sync-cinema/backend/*
 
       - name: Copy backend files
@@ -126,9 +89,8 @@ jobs:
           password: ${{ secrets.SERVER_PASSWORD }}
           source: "backend/*"
           target: "/var/www/sync-cinema/backend"
-          strip_components: 1
 
-      # 重启后端服务
+      # 启动后端服务
       - name: Start backend service
         uses: appleboy/ssh-action@master
         with:
@@ -138,4 +100,4 @@ jobs:
           script: |
             cd /var/www/sync-cinema/backend
             npm ci
-            pm2 restart sync-cinema-backend || pm2 start index.js --name sync-cinema-backend
+            pm2 start index.js --name sync-cinema-backend
