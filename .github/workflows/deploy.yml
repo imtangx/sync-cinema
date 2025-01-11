@@ -99,5 +99,5 @@ jobs:
           password: ${{ secrets.SERVER_PASSWORD }}
           script: |
             cd /var/www/sync-cinema/backend
-            npm ci
+            npm install
             pm2 start index.js --name sync-cinema-backend
