@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import userService from "../services/users";
 import { Button, Input } from "antd";
-import "../styles/EnterRoomCard.css";
 
 const EnterRoomCard = () => {
   const [roomId, setRoomId] = useState("");
@@ -35,21 +34,18 @@ const EnterRoomCard = () => {
   };
 
   return (
-    <div className="EnterRoomCard">
-      <form onSubmit={handleSubmit}>
-        <Input
-          type="text"
-          value={roomId}
-          onChange={(e) => setRoomId(e.target.value)}
-          placeholder="房间 ID"
-        />
+    <div
+      style={{
+        width: "350px",
+        padding: "2rem",
+        borderRadius: "8px",
+        backgroundColor: "rgb(234, 239, 241)",
+        boxShadow: "0 2px 8px rgba(0, 0, 0, 0.1)"
+      }}>
+      <form style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "0.2rem" }} onSubmit={handleSubmit}>
+        <Input type="text" value={roomId} onChange={(e) => setRoomId(e.target.value)} placeholder="房间 ID" />
         <br />
-        <Input
-          type="text"
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
-          placeholder="用户名"
-        />
+        <Input type="text" value={username} onChange={(e) => setUsername(e.target.value)} placeholder="用户名" />
         <br />
         <Button type="primary" htmlType="submit">
           加入房间
