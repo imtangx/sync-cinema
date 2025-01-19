@@ -81,9 +81,15 @@ wss.on("connection", (ws) => {
       clearTimeout(timer);
     }
 
+    let isOldRoom = false;
+
     // 查看用户是否真的退出
     if (!roomManager.includeUser(username, roomId)) {
       roomManager.addUserToRoom(username, roomId, ws);
+      console.log(roomManager.getRoom(roomId));
+      if (roomManager.getRoom(roomId).onlineUsers.length > 1) {
+        isOldRoom = true;
+      }
       roomManager.broadcast(roomId, new Message(MessageType.USER_JOIN, { username }));
     } else {
       // 对刷新后的窗口重新进行ws连接
@@ -94,7 +100,9 @@ wss.on("connection", (ws) => {
     // 更新视频状态的时间戳和实际进度
     if (room.videoState.isPlaying) {
       const elapsedTime = (Date.now() - room.videoState.lastUpdated) / 1000;
-      room.videoState.currentTime += elapsedTime;
+      if (isOldRoom) {
+        room.videoState.currentTime += elapsedTime;
+      }
       room.videoState.lastUpdated = Date.now();
     }
 
