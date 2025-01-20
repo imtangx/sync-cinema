@@ -182,12 +182,30 @@ const RoomPage = () => {
 
   return (
     <Layout style={{ height: "100vh" }}>
-      <Header style={{ background: "skyblue", textAlign: "center", height: "64px" }}>Room {roomId}</Header>
+      <Header
+        style={{
+          background: "rgba(255, 255, 255, 0.8)",
+          borderBottom: "1px solid #e5e5e5",
+          textAlign: "center",
+          height: "64px",
+          alignItems: "center",
+          justifyContent: "center"
+        }}>
+        <h1
+          style={{
+            margin: 0,
+            fontSize: "24px",
+            fontWeight: 500,
+            color: "#1d1d1f"
+          }}>
+          Room {roomId}
+        </h1>
+      </Header>
       <Layout>
-        <Content>
+        <Content style={{ background: "rgba(255,255,255, 0.8)", padding: "12px", display: "flex", justifyContent: "center", alignItems: "center" }}>
           <VideoPlayer videoRef={videoRef} videoSrc={store.videoState.url} onPlay={handlePlay} onPause={handlePause} />
         </Content>
-        <Sider width="22.8%">
+        <Sider width="20%">
           <div style={{ display: "flex", flexDirection: "column", height: "100%", background: "rgb(234, 239, 241)" }}>
             <div style={{ maxHeight: "120px", overflow: "auto" }}>
               <OnlineUsersList users={store.onlineUsers} />
@@ -198,7 +216,16 @@ const RoomPage = () => {
           </div>
         </Sider>
       </Layout>
-      <Footer style={{ background: "skyblue", height: "64px" }}>
+      <Footer
+        style={{
+          background: "rgba(255, 255, 255, 0.8)",
+          borderTop: "1px solid #e5e5e5",
+          textAlign: "center",
+          height: "64px",
+          alignItems: "center",
+          justifyContent: "center",
+          color: "#86868b"
+        }}>
         <VideoUrlChanger handleVideoUrlChanged={handleVideoUrlChanged} />
       </Footer>
     </Layout>

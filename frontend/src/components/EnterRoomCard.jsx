@@ -39,7 +39,7 @@ const EnterRoomCard = () => {
         width: "350px",
         padding: "2rem",
         borderRadius: "8px",
-        backgroundColor: "rgb(234, 239, 241)",
+        backgroundColor: "#f5f5f7",
         boxShadow: "0 2px 8px rgba(0, 0, 0, 0.1)"
       }}>
       <form style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "0.2rem" }} onSubmit={handleSubmit}>
